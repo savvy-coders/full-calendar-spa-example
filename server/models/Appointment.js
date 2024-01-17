@@ -1,17 +1,17 @@
 const mongoose = require("mongoose");
 
 const appointmentSchema = new mongoose.Schema({
-  customer: {
+  title: {
     type: String,
-    required: true,
+    required: true
   },
   start: {
     type: Date,
-    required: true,
+    required: true
   },
   end: {
     type: Date,
-    required: true,
+    required: true
   },
   url: {
     type: String

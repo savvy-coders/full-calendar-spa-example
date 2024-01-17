@@ -8,26 +8,25 @@ import axios from "axios";
 const router = new Navigo("/");
 var calendar;
 
-function render(st) {
+function render(state) {
   document.querySelector("#root").innerHTML = `
-    ${Header(st)}
+    ${Header(state)}
     ${Nav(store.Links)}
-    ${Main(st)}
+    ${Main(state)}
     ${Footer()}
   `;
 
   router.updatePageLinks();
 
-  addEventListeners(st);
+  afterRender(state);
 }
-
 
 function handleEventDragResize(info) {
   const event = info.event;
 
   if (confirm("Are you sure about this change?")) {
     const requestData = {
-      customer: event.title,
+      title: event.title,
       start: event.start.toJSON(),
       end: event.end.toJSON(),
       url: event.url
@@ -36,7 +35,9 @@ function handleEventDragResize(info) {
     axios
       .put(`${process.env.API_URL}/appointments/${event.id}`, requestData)
       .then(response => {
-        console.log(`Event '${response.data.customer}' (${response.data._id}) has been updated.`);
+        console.log(
+          `Event '${response.data.title}' (${response.data._id}) has been updated.`
+        );
       })
       .catch(error => {
         info.revert();
@@ -47,7 +48,7 @@ function handleEventDragResize(info) {
   }
 }
 
-function addEventListeners(st) {
+function afterRender(state) {
   // add menu toggle to bars icon in nav bar
   document
     .querySelector(".fa-bars")
@@ -55,24 +56,30 @@ function addEventListeners(st) {
       document.querySelector("nav > ul").classList.toggle("hidden--mobile")
     );
 
-  if (st.view === "Schedule") {
+  if (state.view === "Schedule") {
     document.querySelector("form").addEventListener("submit", event => {
       event.preventDefault();
 
       const inputList = event.target.elements;
 
       const requestData = {
-        customer: inputList.customer.value,
+        title: inputList.title.value,
+        allDay: inputList.allDay.checked,
         start: new Date(inputList.start.value).toJSON(),
-        end: new Date(inputList.end.value).toJSON(),
+        end: new Date(inputList.end.value).toJSON()
       };
+
+      console.log("matsinet-index.js:72-requestData:", requestData);
 
       axios
         .post(`${process.env.API_URL}/appointments`, requestData)
         .then(response => {
-          // Push the new pizza onto the Pizza state pizzas attribute, so it can be displayed in the pizza list
-          store.Appointments.appointments.push(response.data);
-          router.navigate("/appointments");
+          store.Calendar.appointments.push(response.data);
+          console.log(
+            "matsinet-index.js:76-store.Calendar.appointments:",
+            store.Calendar.appointments
+          );
+          router.navigate("/calendar");
         })
         .catch(error => {
           console.log("It puked", error);
@@ -80,30 +87,30 @@ function addEventListeners(st) {
     });
   }
 
-  if (st.view === "Appointments" && st.appointments) {
-    const calendarEl = document.getElementById('calendar');
+  if (state.view === "Calendar") {
+    const calendarEl = document.getElementById("calendar");
     calendar = new FullCalendar.Calendar(calendarEl, {
-      initialView: 'dayGridMonth',
+      initialView: "dayGridMonth",
       headerToolbar: {
-        left: 'prev,next today',
-        center: 'title',
-        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        left: "prev,next today",
+        center: "title",
+        right: "dayGridMonth,timeGridWeek,timeGridDay"
       },
       buttonText: {
-        today:    'Today',
-        month:    'Month',
-        week:     'Week',
-        day:      'Day',
-        list:     'List'
+        today: "Today",
+        month: "Month",
+        week: "Week",
+        day: "Day",
+        list: "List"
       },
-      height: '100%',
+      height: "100%",
       dayMaxEventRows: true,
       navLinks: true,
       editable: true,
       selectable: true,
       eventClick: function(info) {
         // change the border color just for fun
-        info.el.style.borderColor = 'red';
+        info.el.style.borderColor = "red";
       },
       eventDrop: function(info) {
         handleEventDragResize(info);
@@ -111,58 +118,62 @@ function addEventListeners(st) {
       eventResize: function(info) {
         handleEventDragResize(info);
       },
-      select: (info) => {
-        const customer = prompt("Please enter a title");
+      select: info => {
+        const title = prompt("Please enter a title");
 
-        if (customer) {
+        if (title) {
           const requestData = {
-            customer: customer,
+            title: title,
             start: info.start.toJSON(),
             end: info.end.toJSON(),
-            allDay: info.view.type === 'dayGridMonth'
+            allDay: info.view.type === "dayGridMonth"
           };
 
           axios
-          .post(`${process.env.API_URL}/appointments`, requestData)
-          .then(response => {
-            // Push the new pizza onto the Pizza state pizzas attribute, so it can be displayed in the pizza list
-            response.data.title = response.data.customer;
-            response.data.url = `/appointments/${response.data._id}`;
-            console.log('matsinet-response.data:', response.data);
-            store.Appointments.appointments.push(response.data);
-            console.log(`Event '${response.data.customer}' (${response.data._id}) has been created.`);
-            calendar.addEvent(response.data);
-            calendar.unselect();
-          })
-          .catch(error => {
-            console.log("It puked", error);
-          });
+            .post(`${process.env.API_URL}/appointments`, requestData)
+            .then(response => {
+              // Push the new pizza onto the Pizza state pizzas attribute, so it can be displayed in the pizza list
+              response.data.title = response.data.title;
+              response.data.url = `/appointments/${response.data._id}`;
+              store.Appointments.appointments.push(response.data);
+              console.log(
+                `Event '${response.data.title}' (${response.data._id}) has been created.`
+              );
+              calendar.addEvent(response.data);
+              calendar.unselect();
+            })
+            .catch(error => {
+              console.log("It puked", error);
+            });
         } else {
           calendar.unselect();
         }
       },
-      events: st.appointments || []
+      events: state.appointments || []
     });
     calendar.render();
   }
 
-  if (st.view === "Appointments" && st.event) {
+  if (state.view === "Appointments") {
     const deleteButton = document.getElementById("delete-appointment");
-    deleteButton.addEventListener("click", (event) => {
+    deleteButton.addEventListener("click", event => {
       deleteButton.disabled = true;
-      console.log('matsinet-event.target.dataset.id:', event.target.dataset.id);
 
       if (confirm("Are you sure you want to delete this appointment")) {
         axios
-        .delete(`${process.env.API_URL}/appointments/${event.target.dataset.id}`)
-        .then(response => {
-          // Push the new pizza onto the Pizza state pizzas attribute, so it can be displayed in the pizza list
-          console.log(`Event '${response.data.customer}' (${response.data._id}) has been deleted.`);
-          router.navigate('/appointments');
-        })
-        .catch(error => {
-          console.log("It puked", error);
-        });
+          .delete(
+            `${process.env.API_URL}/appointments/${event.target.dataset.id}`
+          )
+          .then(response => {
+            // Push the new pizza onto the Pizza state pizzas attribute, so it can be displayed in the pizza list
+            console.log(
+              `Event '${response.data.title}' (${response.data._id}) has been deleted.`
+            );
+            router.navigate("/calendar");
+          })
+          .catch(error => {
+            console.log("It puked", error);
+          });
       } else {
         deleteButton.disabled = false;
       }
@@ -173,68 +184,70 @@ function addEventListeners(st) {
 //  ADD ROUTER HOOKS HERE ...
 router.hooks({
   before: (done, params) => {
-    let page = "Home";
+    let view = "Home";
     let id = "";
 
     if (params && params.data) {
-      page = params.data.page ? capitalize(params.data.page) : "Home";
+      view = params.data.view ? capitalize(params.data.view) : "Home";
       id = params.data.id ? params.data.id : "";
     }
 
-    if (page === "Home") {
-      axios
-        .get(
-          `https://api.openweathermap.org/data/2.5/weather?q=st.%20louis&appid=${process.env.OPEN_WEATHER_MAP_API_KEY}`
-        )
-        .then((response) => {
-          store.Home.weather = {};
-          store.Home.weather.city = response.data.name;
-          store.Home.weather.temp = response.data.main.temp;
-          store.Home.weather.feelsLike = response.data.main.feels_like;
-          store.Home.weather.description = response.data.weather[0].main;
-          done();
-        })
-        .catch((err) => console.log(err));
-    } else if (page === "Appointments" && id === "") {
-      axios
-        .get(`${process.env.API_URL}/appointments`)
-        .then((response) => {
-          const events = response.data.map(event => {
-            return {
-              id: event._id,
-              title: event.customer,
-              start: new Date(event.start),
-              end: new Date(event.end),
-              url: `/appointments/${event._id}`,
-              allDay: event.allDay || false
-            };
+    switch (view) {
+      case "Home":
+        axios
+          .get(
+            `https://api.openweathermap.org/data/2.5/weather?q=st.%20louis&appid=${process.env.OPEN_WEATHER_MAP_API_KEY}`
+          )
+          .then(response => {
+            store.Home.weather = {};
+            store.Home.weather.city = response.data.name;
+            store.Home.weather.temp = response.data.main.temp;
+            store.Home.weather.feelsLike = response.data.main.feels_like;
+            store.Home.weather.description = response.data.weather[0].main;
+            done();
+          })
+          .catch(err => console.log(err));
+        break;
+      case "Calendar":
+        axios
+          .get(`${process.env.API_URL}/appointments`)
+          .then(response => {
+            const events = response.data.map(event => {
+              return {
+                id: event._id,
+                title: event.title || event.customer,
+                start: new Date(event.start),
+                end: new Date(event.end),
+                url: `/appointments/${event._id}`,
+                allDay: event.allDay || false
+              };
+            });
+            store.Calendar.appointments = events;
+            done();
+          })
+          .catch(error => {
+            console.log("It puked", error);
           });
-          store.Appointments.event = null;
-          store.Appointments.appointments = events;
-          done();
-        })
-        .catch((error) => {
-          console.log("It puked", error);
-        });
-    } else if (page === "Appointments" && id !== "") {
-      axios
-      .get(`${process.env.API_URL}/appointments/${id}`)
-      .then((response) => {
-        store.Appointments.appointments = null;
-        store.Appointments.event = {
-          id: response.data._id,
-          title: response.data.customer,
-          start: new Date(response.data.start),
-          end: new Date(response.data.end),
-          url: `/appointment/${response.data._id}`
-        };
+        break;
+      case "Appointments":
+        axios
+          .get(`${process.env.API_URL}/appointments/${id}`)
+          .then(response => {
+            store.Appointments.event = {
+              id: response.data._id,
+              title: response.data.title || response.data.customer,
+              start: new Date(response.data.start),
+              end: new Date(response.data.end),
+              url: `/appointment/${response.data._id}`
+            };
+            done();
+          })
+          .catch(error => {
+            console.log("It puked", error);
+          });
+        break;
+      default:
         done();
-      })
-      .catch((error) => {
-        console.log("It puked", error);
-      });
-    } else {
-      done();
     }
   }
 });
@@ -242,13 +255,13 @@ router.hooks({
 router
   .on({
     "/": () => render(store.Home),
-    ":page/:id": (params) => {
-      let page = capitalize(params.data.page);
-      render(store[page]);
+    ":view/:id": params => {
+      let view = capitalize(params.data.view);
+      render(store[view]);
     },
-    ":page": (params) => {
-      let page = capitalize(params.data.page);
-      render(store[page]);
+    ":view": params => {
+      let view = capitalize(params.data.view);
+      render(store[view]);
     }
   })
   .resolve();

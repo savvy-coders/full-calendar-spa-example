@@ -28,7 +28,7 @@ router.get("/:id", (request, response) => {
 });
 
 router.get("/crust/:crust", (request, response) => {
-  Appointment.find({crust: request.params.crust}, (error, record) => {
+  Appointment.find({ crust: request.params.crust }, (error, record) => {
     if (error) return response.sendStatus(500).json(error);
     return response.json(record);
   });
@@ -44,12 +44,11 @@ router.delete("/:id", (request, response) => {
 router.put("/:id", (request, response) => {
   const body = request.body;
   Appointment.findByIdAndUpdate(
-
     request.params.id,
 
     {
       $set: {
-        customer: body.customer,
+        title: body.title,
         start: body.start,
         end: body.end,
         url: body.url,
