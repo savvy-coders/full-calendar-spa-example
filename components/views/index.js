@@ -1,5 +1,5 @@
-export { default as Home } from "./Home";
-export { default as Bio } from "./Bio";
-export { default as Appointments } from "./Appointments";
-export { default as Calendar } from "./Calendar";
-export { default as Schedule } from "./Schedule";
+export { default as home } from "./home";
+export { default as bio } from "./bio";
+export { default as appointments } from "./appointments";
+export { default as calendar } from "./calendar";
+export { default as schedule } from "./schedule";
