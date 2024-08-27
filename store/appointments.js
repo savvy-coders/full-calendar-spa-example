@@ -1,5 +1,5 @@
 export default {
   header: "Appointments",
-  view: "Appointments",
+  view: "appointments",
   event: {}
 };
