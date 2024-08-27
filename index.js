@@ -1,5 +1,5 @@
-import { header, nav, main, footer } from "./component";
-import * as store from "./stores";
+import { header, nav, main, footer } from "./components";
+import * as store from "./store";
 import Navigo from "navigo";
 import { Calendar } from "@fullcalendar/core";
 import interactionPlugin from "@fullcalendar/interaction";
