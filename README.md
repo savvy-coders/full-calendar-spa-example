@@ -13,6 +13,5 @@ Demonstrates the following:
 ```yaml
 OPEN_WEATHER_MAP_API_KEY=
 API_URL=http://localhost:4040
-PORT=4040
 MONGODB=
 ```
